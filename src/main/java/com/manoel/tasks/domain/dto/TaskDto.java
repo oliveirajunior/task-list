@@ -11,8 +11,8 @@ public record TaskDto(
         String title,
         String description,
         LocalDateTime dueDate,
-        TaskPriority priority,
-        TaskStatus status
-
-) {
+        TaskStatus taskStatus, TaskPriority priority,
+        TaskStatus status,
+        //Because TaskMapperImpl
+        Object o, Object object) {
 }
