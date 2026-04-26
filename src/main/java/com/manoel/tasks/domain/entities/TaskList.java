@@ -43,6 +43,9 @@ public class TaskList {
         this.updated = updated;
     }
 
+    public TaskList(UUID id, String title, String description, Object o, Object o1, List<Task> list, Object o2, Object o3) {
+    }
+
     public UUID getId() {
         return id;
     }

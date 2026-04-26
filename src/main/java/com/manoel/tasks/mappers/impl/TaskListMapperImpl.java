@@ -9,6 +9,7 @@ import com.manoel.tasks.mappers.TaskMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class TaskListMapperImpl implements TaskListMapper {
@@ -26,7 +27,11 @@ public class TaskListMapperImpl implements TaskListMapper {
                 taskListDto.id(),
                 taskListDto.title(),
                 taskListDto.description(),
-                taskListDto.tasks().stream().map(taskMapper::fromDto).toList(),
+                Optional.ofNullable(taskListDto.tasks())
+                        .map(tasks -> tasks.stream()
+                                .map(taskMapper::fromDto)
+                                .toList()
+                        ).orElse(null),
                 null,
                 null
         );
@@ -38,11 +43,12 @@ public class TaskListMapperImpl implements TaskListMapper {
                 taskList.getId(),
                 taskList.getTitle(),
                 taskList.getDescription(),
-                //caution here!! 01:15:13
-                taskList.getTasks().stream().toList().size(),
+                Optional.ofNullable(taskList.getTasks()).map(List::size).orElse(0),
                 calculateTaskListProgress(taskList.getTasks()),
-                //caution here!! 01:17:41
-                taskList.getTasks().stream().map(taskMapper::toDto).toList()
+                Optional.ofNullable(taskList.getTasks()).map(tasks -> tasks.stream()
+                        .map(taskMapper::toDto)
+                        .toList()
+                ).orElse(null)
         );
     }
 
