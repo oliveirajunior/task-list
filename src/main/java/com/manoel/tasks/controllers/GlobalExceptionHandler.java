@@ -2,8 +2,6 @@ package com.manoel.tasks.controllers;
 
 import com.manoel.tasks.domain.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.ControllerAdvice;
