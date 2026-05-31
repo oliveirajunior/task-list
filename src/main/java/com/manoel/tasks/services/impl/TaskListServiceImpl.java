@@ -7,10 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-<<<<<<< HEAD
 import java.util.Objects;
-=======
->>>>>>> 2692ac9d45e0e0b96bcb9d5638e0974d388c5a30
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,7 +49,6 @@ public class TaskListServiceImpl implements TaskListService {
     public Optional<TaskList> getTaskList(UUID id) {
         return taskListRepository.findById(id);
     }
-<<<<<<< HEAD
 
     @Override
     public TaskList updateTaskList(UUID taskListId, TaskList taskList) {
@@ -78,6 +74,5 @@ public class TaskListServiceImpl implements TaskListService {
     public void deleteTaskList(UUID taskListId) {
        taskListRepository.deleteById(taskListId);
     }
-=======
->>>>>>> 2692ac9d45e0e0b96bcb9d5638e0974d388c5a30
+
 }

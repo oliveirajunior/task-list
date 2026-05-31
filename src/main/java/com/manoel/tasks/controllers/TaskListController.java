@@ -44,7 +44,6 @@ public class TaskListController {
                 .map(taskListMapper::toDto);
     }
 
-<<<<<<< HEAD
     @PutMapping(path="/{task_list_id}")
     public TaskListDto updateTaskList(
             @PathVariable("task_list_id") UUID taskListId,
@@ -64,6 +63,4 @@ public class TaskListController {
         taskListService.deleteTaskList(taskListId);
     }
 
-=======
->>>>>>> 2692ac9d45e0e0b96bcb9d5638e0974d388c5a30
 }

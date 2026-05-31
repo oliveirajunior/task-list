@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface Taskrepository extends JpaRepository<Task, UUID> {
+public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     List<Task> findByTaskListId(UUID tasklistId);
     Optional<Task> findByTaskListIdAndId(UUID taskListId, UUID id);
