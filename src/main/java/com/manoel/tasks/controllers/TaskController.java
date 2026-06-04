@@ -4,6 +4,7 @@ import com.manoel.tasks.domain.dto.TaskDto;
 import com.manoel.tasks.domain.entities.Task;
 import com.manoel.tasks.mappers.TaskMapper;
 import com.manoel.tasks.services.TaskService;
+import jakarta.transaction.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,4 +59,12 @@ public class TaskController {
         Task updatedTask = taskService.updateTask(taskListId, taskId, taskMapper.fromDto(taskDto));
         return taskMapper.toDto(updatedTask);
     }
+
+    @Transactional
+    @DeleteMapping(path = "/{task_id}")
+    public void deleteTask(
+            @PathVariable("task_list_id") UUID taskListId,
+            @PathVariable("task_id") UUID taskId){
+        taskService.deleteTask(taskListId, taskId);
+    };
 }
