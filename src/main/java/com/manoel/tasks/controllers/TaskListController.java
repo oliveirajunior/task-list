@@ -12,6 +12,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/task-lists")
+@CrossOrigin(origins = "http://localhost:8080")
 public class TaskListController {
 
     private final TaskListService taskListService;

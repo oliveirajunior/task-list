@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/task-lists/{task_list_id}/tasks")
+@CrossOrigin(origins = "http://localhost:8080")
 public class TaskController {
     
     private final TaskService taskService;
@@ -22,7 +23,7 @@ public class TaskController {
         this.taskService = taskService;
         this.taskMapper = taskMapper;
     }
-    
+
     @GetMapping
     public List<TaskDto> listTasks(@PathVariable("task_list_id") UUID taskListId){
 
