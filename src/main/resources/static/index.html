@@ -854,7 +854,6 @@ function renderMain() {
 
   let filteredTasks = [...state.tasks];
 
-  // CORREÇÃO: Filtros simplificados e sem linhas duplicadas com retorno de string errôneo.
   if (state.filters.status !== 'ALL') {
     filteredTasks = filteredTasks.filter(t => (t.status || 'OPEN') === state.filters.status);
   }
@@ -971,7 +970,6 @@ async function selectList(id) {
   }
 }
 
-// CORREÇÃO: Adicionado o recurso toggle. Clicar em um filtro já ativo redefine ele para 'ALL'.
 function setFilter(type, value) {
   if (state.filters[type] === value) {
     state.filters[type] = 'ALL';
@@ -1101,7 +1099,7 @@ function openTaskModal(taskId = null) {
       </div>
       <div class="form-group">
         <label class="form-label">Data de vencimento</label>
-        <input class="form-input" type="datetime-local" id="ft-due" value="${dueDateVal}">
+        <input class="form-input" type="datetime-local" id="ft-due" max="9999-12-31T23:59" value="${dueDateVal}">
       </div>`,
     actions: [
       { label: 'Cancelar', cls: 'btn-ghost', action: closeModal },
@@ -1123,6 +1121,14 @@ async function saveTask(taskId) {
   let formattedDate = null;
   if (dueInput) {
     const d = new Date(dueInput);
+    
+    // CORREÇÃO: Validação em JavaScript para garantir que o ano digitado não exceda 4 dígitos
+    if (d.getFullYear() > 9999 || isNaN(d.getTime())) {
+      shakeInput('ft-due');
+      toast('Ano inválido. Máximo de 4 dígitos.');
+      return;
+    }
+
     const pad = num => String(num).padStart(2, '0');
     formattedDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
@@ -1141,7 +1147,7 @@ async function saveTask(taskId) {
       const updatedTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = state.tasks.findIndex(t => t.id == taskId);
       state.tasks[idx] = updatedTask || { id: taskId, ...payload };
-      toast('Tarefa atualizada');
+      toast('Tarefa updated');
     } else {
       const createdTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks`, { method: 'POST', body: JSON.stringify(payload) });
       if(createdTask && !createdTask.status) createdTask.status = 'OPEN';
