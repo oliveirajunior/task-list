@@ -853,7 +853,7 @@ function renderMain() {
 
   let filteredTasks = [...state.tasks];
 
-  if (state.filters.status !== 'ALL') filteredTasks = filteredTasks.filter(t => t.status === 'OPEN' ? 'OPEN' : 'CLOSED');
+  // CORREÇÃO: Removido o filtro corrompido de conversão ternária que gerava bugs visuais
   if (state.filters.status !== 'ALL') filteredTasks = filteredTasks.filter(t => t.status === state.filters.status);
   if (state.filters.priority !== 'ALL') filteredTasks = filteredTasks.filter(t => t.priority === state.filters.priority);
 
@@ -918,20 +918,30 @@ function renderMain() {
 }
 
 function renderTaskCard(task) {
+  // CORREÇÃO: Garante fallback seguro para 'OPEN' caso o status venha nulo/undefined do backend
+  const currentStatus = task.status || 'OPEN';
+
   const due = task.dueDate ? new Date(task.dueDate) : null;
-  const overdue = due && due < new Date() && task.status === 'OPEN';
+  const overdue = due && due < new Date() && currentStatus === 'OPEN';
   const dueStr = due ? due.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
-  const priorityLabel = { HIGH: 'Alta', MEDIUM: 'Média', LOW: 'Baixa' }[task.priority];
-  const statusLabel = { OPEN: 'Aberta', CLOSED: 'Fechada' }[task.status];
+  const priorityLabel = { HIGH: 'Alta', MEDIUM: 'Média', LOW: 'Baixa' }[task.priority] || 'Média';
+  const statusLabel = { OPEN: 'Aberta', CLOSED: 'Fechada' }[currentStatus];
+
+  // CORREÇÃO LOGICA DO BOTÃO DE CONTROLE:
+  // Se a tarefa está Aberta (OPEN), o botão deve exibir o quadrado vazio (◻) indicando opção de "Concluir".
+  // Se a tarefa está Fechada (CLOSED), o botão deve exibir o quadrado preenchido (◼) indicando opção de "Reabrir".
+  const isClosed = currentStatus === 'CLOSED';
+  const statusIcon = isClosed ? '◼' : '◻';
+  const statusTooltip = isClosed ? 'Reabrir tarefa' : 'Concluir tarefa';
 
   return `
-    <div class="task-card priority-${task.priority} status-${task.status}">
+    <div class="task-card priority-${task.priority || 'MEDIUM'} status-${currentStatus}">
       <div class="task-card-top">
         <div class="task-title">${escHtml(task.title)}</div>
         <div class="task-menu">
-          <button class="icon-btn" onclick="toggleStatus('${task.id}')" title="${task.status === 'OPEN' ? 'Fechar' : 'Reabrir'}">
-            ${task.status === 'OPEN' ? '◻' : '◼'}
+          <button class="icon-btn" onclick="toggleStatus('${task.id}')" title="${statusTooltip}">
+            ${statusIcon}
           </button>
           <button class="icon-btn" onclick="openTaskModal('${task.id}')" title="Editar">✎</button>
           <button class="icon-btn danger" onclick="confirmDeleteTask('${task.id}')" title="Excluir">✕</button>
@@ -940,8 +950,8 @@ function renderTaskCard(task) {
       ${task.description ? `<div class="task-description">${escHtml(task.description)}</div>` : `<div class="task-description"></div>`}
       <div class="task-meta">
         <div class="task-badges">
-          <span class="badge badge-priority-${task.priority}">${priorityLabel}</span>
-          <span class="badge badge-status-${task.status}">${statusLabel}</span>
+          <span class="badge badge-priority-${task.priority || 'MEDIUM'}">${priorityLabel}</span>
+          <span class="badge badge-status-${currentStatus}">${statusLabel}</span>
         </div>
         ${dueStr ? `<span class="task-due ${overdue ? 'overdue' : ''}">${overdue ? '⚠ ' : ''}${dueStr}</span>` : ''}
       </div>
@@ -969,8 +979,9 @@ async function toggleStatus(taskId) {
   const task = state.tasks.find(t => t.id == taskId);
   if (!task) return;
   
-  const novoStatus = task.status === 'OPEN' ? 'CLOSED' : 'OPEN';
-  const oldStatus = task.status;
+  const currentStatus = task.status || 'OPEN';
+  const novoStatus = currentStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+  const oldStatus = currentStatus;
   
   const payload = {
     ...task,
@@ -1020,8 +1031,6 @@ async function saveList(listId) {
   const desc = document.getElementById('fl-desc').value.trim();
   if (!title) { shakeInput('fl-title'); return; }
 
-  // CORREÇÃO: Mapeia o payload com o 'id' inserido explicitamente se for edição,
-  // adaptando perfeitamente às exigências de desserialização Jackson do Spring Boot.
   const payload = { title, description: desc || null };
   if (listId) {
     payload.id = listId;
@@ -1031,7 +1040,6 @@ async function saveList(listId) {
     if (listId) {
       const updatedList = await apiFetch(`/task-lists/${listId}`, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = state.lists.findIndex(l => l.id == listId);
-      // Sincroniza o estado local baseado no retorno ou na mutação estável
       state.lists[idx] = updatedList || { id: listId, ...payload };
       toast('Lista atualizada');
     } else {
@@ -1080,7 +1088,7 @@ function openTaskModal(taskId = null) {
         <div class="form-group">
           <label class="form-label">Status</label>
           <select class="form-select" id="ft-status">
-            <option value="OPEN" ${!task || task.status === 'OPEN' ? 'selected' : ''}>Aberta</option>
+            <option value="OPEN" ${!task || (task.status || 'OPEN') === 'OPEN' ? 'selected' : ''}>Aberta</option>
             <option value="CLOSED" ${task?.status === 'CLOSED' ? 'selected' : ''}>Fechada</option>
           </select>
         </div>
@@ -1113,11 +1121,12 @@ async function saveTask(taskId) {
     formattedDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
+  // CORREÇÃO: Garante que o status inicial enviado seja sempre válido
   const payload = {
     title,
     description: desc || null,
     dueDate: formattedDate,
-    status,
+    status: status || 'OPEN',
     priority
   };
 
@@ -1127,10 +1136,12 @@ async function saveTask(taskId) {
       const updatedTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = state.tasks.findIndex(t => t.id == taskId);
       state.tasks[idx] = updatedTask || { id: taskId, ...payload };
-      toast('Tarefa updated');
+      toast('Tarefa atualizada');
     } else {
       const createdTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks`, { method: 'POST', body: JSON.stringify(payload) });
-      state.tasks.push(createdTask);
+      // CORREÇÃO: Aplica fallback caso a resposta do back venha sem a propriedade preenchida
+      if(createdTask && !createdTask.status) createdTask.status = 'OPEN';
+      state.tasks.push(createdTask || { id: crypto.randomUUID(), ...payload });
       toast('Tarefa criada');
     }
     closeModal();
