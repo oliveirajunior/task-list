@@ -315,6 +315,7 @@
   .filter-chip.priority-HIGH.active { border-color: var(--red); color: var(--red); background: var(--red-dim); }
   .filter-chip.priority-MEDIUM.active { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
   .filter-chip.priority-LOW.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  .filter-chip.status-OPEN.active { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
   .filter-chip.status-CLOSED.active { border-color: var(--text3); color: var(--text3); background: var(--bg3); }
 
   /* TASK GRID */
@@ -821,7 +822,7 @@ function renderSidebar() {
     return;
   }
   el.innerHTML = state.lists.map(list => {
-    const count = state.tasks.filter(t => t.taskListId === list.id && t.status === 'OPEN').length;
+    const count = state.tasks.filter(t => t.taskListId === list.id && (t.status || 'OPEN') === 'OPEN').length;
     const active = state.selectedListId === list.id ? 'active' : '';
     return `
       <div class="list-item ${active}" onclick="selectList('${list.id}')">
@@ -853,13 +854,17 @@ function renderMain() {
 
   let filteredTasks = [...state.tasks];
 
-  // CORREÇÃO: Removido o filtro corrompido de conversão ternária que gerava bugs visuais
-  if (state.filters.status !== 'ALL') filteredTasks = filteredTasks.filter(t => t.status === state.filters.status);
-  if (state.filters.priority !== 'ALL') filteredTasks = filteredTasks.filter(t => t.priority === state.filters.priority);
+  // CORREÇÃO: Filtros simplificados e sem linhas duplicadas com retorno de string errôneo.
+  if (state.filters.status !== 'ALL') {
+    filteredTasks = filteredTasks.filter(t => (t.status || 'OPEN') === state.filters.status);
+  }
+  if (state.filters.priority !== 'ALL') {
+    filteredTasks = filteredTasks.filter(t => (t.priority || 'MEDIUM') === state.filters.priority);
+  }
 
   const total = state.tasks.length;
-  const open = state.tasks.filter(t => t.status === 'OPEN').length;
-  const high = state.tasks.filter(t => t.priority === 'HIGH' && t.status === 'OPEN').length;
+  const open = state.tasks.filter(t => (t.status || 'OPEN') === 'OPEN').length;
+  const high = state.tasks.filter(t => (t.priority || 'MEDIUM') === 'HIGH' && (t.status || 'OPEN') === 'OPEN').length;
 
   main.innerHTML = `
     <div class="main-header">
@@ -918,7 +923,6 @@ function renderMain() {
 }
 
 function renderTaskCard(task) {
-  // CORREÇÃO: Garante fallback seguro para 'OPEN' caso o status venha nulo/undefined do backend
   const currentStatus = task.status || 'OPEN';
 
   const due = task.dueDate ? new Date(task.dueDate) : null;
@@ -928,9 +932,6 @@ function renderTaskCard(task) {
   const priorityLabel = { HIGH: 'Alta', MEDIUM: 'Média', LOW: 'Baixa' }[task.priority] || 'Média';
   const statusLabel = { OPEN: 'Aberta', CLOSED: 'Fechada' }[currentStatus];
 
-  // CORREÇÃO LOGICA DO BOTÃO DE CONTROLE:
-  // Se a tarefa está Aberta (OPEN), o botão deve exibir o quadrado vazio (◻) indicando opção de "Concluir".
-  // Se a tarefa está Fechada (CLOSED), o botão deve exibir o quadrado preenchido (◼) indicando opção de "Reabrir".
   const isClosed = currentStatus === 'CLOSED';
   const statusIcon = isClosed ? '◼' : '◻';
   const statusTooltip = isClosed ? 'Reabrir tarefa' : 'Concluir tarefa';
@@ -970,8 +971,13 @@ async function selectList(id) {
   }
 }
 
+// CORREÇÃO: Adicionado o recurso toggle. Clicar em um filtro já ativo redefine ele para 'ALL'.
 function setFilter(type, value) {
-  state.filters[type] = value;
+  if (state.filters[type] === value) {
+    state.filters[type] = 'ALL';
+  } else {
+    state.filters[type] = value;
+  }
   renderMain();
 }
 
@@ -1121,7 +1127,6 @@ async function saveTask(taskId) {
     formattedDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
-  // CORREÇÃO: Garante que o status inicial enviado seja sempre válido
   const payload = {
     title,
     description: desc || null,
@@ -1139,7 +1144,6 @@ async function saveTask(taskId) {
       toast('Tarefa atualizada');
     } else {
       const createdTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks`, { method: 'POST', body: JSON.stringify(payload) });
-      // CORREÇÃO: Aplica fallback caso a resposta do back venha sem a propriedade preenchida
       if(createdTask && !createdTask.status) createdTask.status = 'OPEN';
       state.tasks.push(createdTask || { id: crypto.randomUUID(), ...payload });
       toast('Tarefa criada');
