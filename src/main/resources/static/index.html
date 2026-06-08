@@ -865,6 +865,9 @@ function renderMain() {
   const open = state.tasks.filter(t => (t.status || 'OPEN') === 'OPEN').length;
   const high = state.tasks.filter(t => (t.priority || 'MEDIUM') === 'HIGH' && (t.status || 'OPEN') === 'OPEN').length;
 
+  // CORREÇÃO LOGICA: O botão "Todos" só ganha a classe active se status e prioridade forem 'ALL' simultaneamente.
+  const isAllActive = state.filters.status === 'ALL' && state.filters.priority === 'ALL';
+
   main.innerHTML = `
     <div class="main-header">
       <div>
@@ -900,7 +903,7 @@ function renderMain() {
     </div>
 
     <div class="filters">
-      <button class="filter-chip ${state.filters.status === 'ALL' ? 'active' : ''}" onclick="setFilter('status','ALL')">Todos</button>
+      <button class="filter-chip ${isAllActive ? 'active' : ''}" onclick="resetFilters()">Todos</button>
       <button class="filter-chip status-OPEN ${state.filters.status === 'OPEN' ? 'active' : ''}" onclick="setFilter('status','OPEN')">Aberta</button>
       <button class="filter-chip status-CLOSED ${state.filters.status === 'CLOSED' ? 'active' : ''}" onclick="setFilter('status','CLOSED')">Fechada</button>
       <span style="width:1px;background:var(--border);margin:0 0.2rem;align-self:stretch;"></span>
@@ -961,13 +964,19 @@ function renderTaskCard(task) {
 // ── INTERACTIONS ───────────────────────────────────────────────────────────
 async function selectList(id) {
   state.selectedListId = id;
-  state.filters = { status: 'ALL', priority: 'ALL' };
+  resetFilters(); // Alternar lista reseta os filtros automaticamente para manter o comportamento limpo
   try {
     state.tasks = await apiFetch(`/task-lists/${id}/tasks`) || [];
     render();
   } catch (e) {
     console.error("Erro ao alternar listas");
   }
+}
+
+// CORREÇÃO: Função específica para o botão TODOS limpar qualquer estado customizado
+function resetFilters() {
+  state.filters = { status: 'ALL', priority: 'ALL' };
+  renderMain();
 }
 
 function setFilter(type, value) {
@@ -1121,14 +1130,11 @@ async function saveTask(taskId) {
   let formattedDate = null;
   if (dueInput) {
     const d = new Date(dueInput);
-    
-    // CORREÇÃO: Validação em JavaScript para garantir que o ano digitado não exceda 4 dígitos
     if (d.getFullYear() > 9999 || isNaN(d.getTime())) {
       shakeInput('ft-due');
       toast('Ano inválido. Máximo de 4 dígitos.');
       return;
     }
-
     const pad = num => String(num).padStart(2, '0');
     formattedDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
@@ -1147,7 +1153,7 @@ async function saveTask(taskId) {
       const updatedTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = state.tasks.findIndex(t => t.id == taskId);
       state.tasks[idx] = updatedTask || { id: taskId, ...payload };
-      toast('Tarefa updated');
+      toast('Tarefa atualizada');
     } else {
       const createdTask = await apiFetch(`/task-lists/${state.selectedListId}/tasks`, { method: 'POST', body: JSON.stringify(payload) });
       if(createdTask && !createdTask.status) createdTask.status = 'OPEN';
