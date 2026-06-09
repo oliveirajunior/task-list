@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { fill: {} }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shrink-0 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md shadow-indigo-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            </div>
+            <h1 class="text-xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-slate-900 to-indigo-950">TaskFlow</h1>
+        </div>
+        <div class="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-full" id="global-status">Conectado ao Backend</div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                <span class="font-bold text-slate-700 uppercase tracking-wider text-xs">Minhas Listas</span>
+                <button onclick="openModal('modal-list')" class="text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-lg transition-colors duration-200 group flex items-center gap-1 text-sm font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    Nova Lista
+                </button>
+            </div>
+            <div id="lists-container" class="flex-1 overflow-y-auto p-3 space-y-2">
+                </div>
+        </aside>
+
+        <main class="flex-1 bg-slate-50 flex flex-col overflow-hidden">
+            <div id="active-list-header" class="bg-white border-b border-slate-200 p-6 shadow-sm hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="active-list-title" class="text-2xl font-bold text-slate-900"></h2>
+                        <p id="active-list-desc" class="text-slate-500 mt-1 text-sm"></p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="btn-new-task" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-indigo-100 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                            Adicionar Tarefa
+                        </button>
+                        <button id="btn-edit-list" class="border border-slate-200 hover:bg-slate-50 text-slate-600 p-2 rounded-xl transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button id="btn-delete-list" class="border border-red-100 hover:bg-red-50 text-red-600 p-2 rounded-xl transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div class="w-full bg-slate-200 rounded-full h-2.5">
+                        <div id="active-list-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 100%"></div>
+                    </div>
+                    <span id="active-list-progress-text" class="text-xs font-bold text-slate-600 whitespace-nowrap">100% concluído</span>
+                </div>
+            </div>
+
+            <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div class="bg-white p-4 rounded-full shadow-sm mb-4 border border-slate-100 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Nenhuma lista activa</h3>
+                <p class="text-slate-500 max-w-xs mt-1 text-sm">Selecione uma lista de tarefas na barra lateral ou crie uma nova para começar.</p>
+            </div>
+
+            <div id="tasks-container" class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 content-start hidden">
+                </div>
+        </main>
+    </div>
+
+    <div id="modal-list" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl transform scale-95 transition-transform duration-300 relative">
+            <h3 id="modal-list-title" class="text-xl font-bold text-slate-900 mb-4">Nova Lista de Tarefas</h3>
+            <form id="form-list" onsubmit="saveList(event)">
+                <input type="hidden" id="list-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Título</label>
+                        <input type="text" id="list-title-input" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm" placeholder="Ex: Trabalho, Compras...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Descrição</label>
+                        <textarea id="list-desc-input" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm" placeholder="Opcional..."></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-list')" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-task" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl transform scale-95 transition-transform duration-300 relative">
+            <h3 id="modal-task-title" class="text-xl font-bold text-slate-900 mb-4">Nova Tarefa</h3>
+            <form id="form-task" onsubmit="saveTask(event)">
+                <input type="hidden" id="task-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Título da Tarefa</label>
+                        <input type="text" id="task-title-input" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm" placeholder="O que precisa ser feito?">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Descrição Detalhada</label>
+                        <textarea id="task-desc-input" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm" placeholder="Detalhes da tarefa..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Data Limite</label>
+                            <input type="datetime-local" id="task-date-input" max="9999-12-31T23:59" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 bg-slate-50 font-medium" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Prioridade</label>
+                            <select id="task-priority-input" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50">
+                                <option value="LOW">Baixa</option>
+                                <option value="MEDIUM">Média</option>
+                                <option value="HIGH">Alta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Status</label>
+                            <select id="task-status-input" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50">
+                                <option value="OPEN">Aberto</option>
+                                <option value="CLOSED">Fechado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-task')" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100">Salvar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

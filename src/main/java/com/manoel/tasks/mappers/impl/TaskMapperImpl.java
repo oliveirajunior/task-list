@@ -32,7 +32,6 @@ public class TaskMapperImpl implements TaskMapper {
                 task.getStatus(),
                 task.getPriority(),
                 null,
-                null,
                 null
         );
     }
